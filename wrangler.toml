@@ -5,13 +5,6 @@ compatibility_flags = ["nodejs_compat"]
 # Cloudflare Pages build output directory (must match vite.config.cf.ts outDir)
 pages_build_output_dir = "dist/public"
 
-# ─── Build command ────────────────────────────────────────────────────────────
-# Cloudflare Pages CI will run this automatically when you connect the repo.
-# If deploying manually via `npm run deploy`, the build is done by npm first.
-[build]
-command = "npm run build"
-destination = "dist/public"
-
 # ─── Environment variables ────────────────────────────────────────────────────
 # Sensitive values (API keys, secrets) must be set in the Cloudflare dashboard:
 #   Pages → Your project → Settings → Environment Variables
