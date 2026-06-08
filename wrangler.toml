@@ -1,0 +1,11 @@
+name = "gateway-dashboard"
+compatibility_date = "2024-09-23"
+compatibility_flags = ["nodejs_compat"]
+
+pages_build_output_dir = "dist/public"
+
+[env.production]
+vars = { ENVIRONMENT = "production" }
+
+[env.preview]
+vars = { ENVIRONMENT = "preview" }
