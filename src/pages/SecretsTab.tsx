@@ -52,7 +52,7 @@ export default function SecretsTab() {
   const [deletingSecret, setDeletingSecret] = useState<Secret | null>(null);
 
   const proxyEndpoint = selectedGatewayId
-    ? `${window.location.origin}/api/env/${selectedGatewayId}`
+    ? `https://zamproject-api.zamdonations.workers.dev/gateway/gateways/${selectedGatewayId}/env`
     : null;
 
   const { data: groups = [] } = useQuery<Group[]>({
@@ -148,7 +148,7 @@ export default function SecretsTab() {
         <>
           {/* Proxy endpoint card */}
           <div className="flex flex-col gap-1 p-4 rounded-md border border-card-border bg-card">
-            <span className="text-xs text-muted-foreground mb-1">Proxy endpoint</span>
+            <span className="text-xs text-muted-foreground mb-1">Env endpoint (Cloudflare Worker)</span>
             <div className="flex items-center gap-2">
               <span
                 className="font-mono text-xs text-foreground break-all flex-1 select-all"
