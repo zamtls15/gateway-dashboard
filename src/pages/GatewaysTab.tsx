@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { Trash2 } from "lucide-react";
+import { Trash2, Loader2 } from "lucide-react";
 import { fetchApi } from "@/lib/api";
 import { SkeletonRow } from "@/components/SkeletonRow";
 import { ConfirmDeleteDrawer } from "@/components/ConfirmDeleteDrawer";
@@ -25,6 +25,8 @@ export default function GatewaysTab() {
   const [newGatewayName, setNewGatewayName] = useState("");
   const [newGatewayUrl, setNewGatewayUrl] = useState("");
   const [deletingGateway, setDeletingGateway] = useState<Gateway | null>(null);
+  // Track which gateway IDs are currently toggling so we can show per-row loaders.
+  const [togglingIds, setTogglingIds] = useState<Set<string>>(new Set());
 
   const { data: groups = [] } = useQuery<Group[]>({
     queryKey: ["groups"],
@@ -53,16 +55,30 @@ export default function GatewaysTab() {
   });
 
   const updateGatewayStatus = useMutation({
-    mutationFn: ({ id, status }: { id: string; status: 'ON' | 'OFF' }) =>
-      fetchApi(`/gateway/groups/${selectedGroupId}/gateways/${id}`, {
+    mutationFn: ({ id, status }: { id: string; status: 'ON' | 'OFF' }) => {
+      setTogglingIds((prev) => new Set(prev).add(id));
+      return fetchApi(`/gateway/groups/${selectedGroupId}/gateways/${id}`, {
         method: "PATCH",
         body: JSON.stringify({ status }),
-      }),
-    onSuccess: () => {
+      });
+    },
+    onSuccess: (_data, { id }) => {
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
       queryClient.invalidateQueries({ queryKey: ["gateways", selectedGroupId] });
       toast.success("Status updated");
     },
-    onError: (error: Error) => toast.error(error.message),
+    onError: (error: Error, { id }) => {
+      setTogglingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(id);
+        return next;
+      });
+      toast.error(error.message);
+    },
   });
 
   const deleteGateway = useMutation({
@@ -110,40 +126,59 @@ export default function GatewaysTab() {
                 No gateways in this group.
               </div>
             ) : (
-              gateways.map((gw) => (
-                <div
-                  key={gw.id}
-                  className="flex items-center justify-between p-4 border rounded-md border-card-border bg-card flex-wrap gap-4"
-                  data-testid={`row-gateway-${gw.id}`}
-                >
-                  <div className="flex flex-col gap-1 min-w-0 flex-1">
-                    <span className="font-medium text-foreground truncate">{gw.name}</span>
-                    <span className="text-xs font-mono text-muted-foreground truncate">{gw.baseUrl}</span>
+              gateways.map((gw) => {
+                const isToggling = togglingIds.has(gw.id);
+                return (
+                  <div
+                    key={gw.id}
+                    className="flex items-center justify-between p-4 border rounded-md border-card-border bg-card flex-wrap gap-4"
+                    data-testid={`row-gateway-${gw.id}`}
+                  >
+                    <div className="flex flex-col gap-1 min-w-0 flex-1">
+                      <span className="font-medium text-foreground truncate">{gw.name}</span>
+                      <span className="text-xs font-mono text-muted-foreground truncate">{gw.baseUrl}</span>
+                    </div>
+                    <div className="flex items-center gap-3 shrink-0">
+                      <button
+                        onClick={() =>
+                          !isToggling &&
+                          updateGatewayStatus.mutate({
+                            id: gw.id,
+                            status: gw.status === 'ON' ? 'OFF' : 'ON',
+                          })
+                        }
+                        disabled={isToggling}
+                        aria-busy={isToggling}
+                        className={`relative flex items-center justify-center gap-1.5 min-w-[56px] px-3 py-1 text-xs font-bold rounded-full transition-opacity font-mono ${
+                          isToggling
+                            ? 'opacity-60 cursor-not-allowed'
+                            : 'cursor-pointer'
+                        } ${
+                          gw.status === 'ON'
+                            ? 'bg-[#166534] text-white'
+                            : 'bg-[#991b1b] text-white'
+                        }`}
+                        data-testid={`button-toggle-status-${gw.id}`}
+                      >
+                        {isToggling ? (
+                          <Loader2 size={12} className="animate-spin" />
+                        ) : (
+                          gw.status
+                        )}
+                      </button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => setDeletingGateway(gw)}
+                        data-testid={`button-delete-gateway-${gw.id}`}
+                        className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+                      >
+                        <Trash2 size={18} />
+                      </Button>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-3 shrink-0">
-                    <button
-                      onClick={() =>
-                        updateGatewayStatus.mutate({ id: gw.id, status: gw.status === 'ON' ? 'OFF' : 'ON' })
-                      }
-                      className={`px-3 py-1 text-xs font-bold rounded-full transition-colors font-mono ${
-                        gw.status === 'ON' ? 'bg-[#166534] text-white' : 'bg-[#991b1b] text-white'
-                      }`}
-                      data-testid={`button-toggle-status-${gw.id}`}
-                    >
-                      {gw.status}
-                    </button>
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      onClick={() => setDeletingGateway(gw)}
-                      data-testid={`button-delete-gateway-${gw.id}`}
-                      className="text-muted-foreground hover:text-destructive hover:bg-destructive/10"
-                    >
-                      <Trash2 size={18} />
-                    </Button>
-                  </div>
-                </div>
-              ))
+                );
+              })
             )}
           </div>
 

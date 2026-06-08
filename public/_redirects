@@ -1,0 +1,18 @@
+# Cloudflare Pages _redirects
+#
+# These rules run at the CDN edge before any asset is served.
+#
+# Rule 1 & 2: Proxy /gateway/* and /health to the Cloudflare Worker so the
+# frontend can use relative URLs in production (matching how the Vite dev
+# proxy is configured in vite.config.ts).
+#
+# IMPORTANT: Replace the target origin below with your actual Worker URL if it
+# differs from the default. The VITE_API_BASE_URL env var is for JS-level
+# fetches; these rules handle the network-layer routing independently.
+#
+# Rule 3: SPA fallback — serve index.html for all other paths so client-side
+# routing (wouter) works on hard reload or direct URL access.
+
+/gateway/*  https://zamproject-api.zamdonations.workers.dev/gateway/:splat  200
+/health     https://zamproject-api.zamdonations.workers.dev/health          200
+/*          /index.html                                                      200

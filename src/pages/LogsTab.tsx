@@ -1,5 +1,6 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { RotateCcw } from "lucide-react";
+import { RotateCcw, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { fetchApi } from "@/lib/api";
 import { SkeletonRow } from "@/components/SkeletonRow";
@@ -13,26 +14,47 @@ type Log = {
   createdAt: string;
 };
 
+const PAGE_SIZE = 20;
+
 export default function LogsTab() {
+  const [page, setPage] = useState(1);
+
   const { data: logs = [], isLoading, isError, error, refetch, isRefetching } = useQuery<Log[]>({
     queryKey: ["logs"],
     queryFn: () => fetchApi("/gateway/logs"),
+    // Reset to page 1 whenever data refreshes so the user isn't left on a now-
+    // nonexistent page.
+    select: (data) => {
+      setPage(1);
+      return data;
+    },
   });
+
+  const totalPages = Math.max(1, Math.ceil(logs.length / PAGE_SIZE));
+  const safePage = Math.min(page, totalPages);
+  const pageLogs = logs.slice((safePage - 1) * PAGE_SIZE, safePage * PAGE_SIZE);
 
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
         <h1 className="text-xl font-bold tracking-tight text-foreground">Logs</h1>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => refetch()}
-          disabled={isRefetching}
-          data-testid="button-refresh-logs"
-          className="text-muted-foreground hover:text-foreground"
-        >
-          <RotateCcw size={18} className={isRefetching ? "animate-spin" : ""} />
-        </Button>
+        <div className="flex items-center gap-3">
+          {logs.length > 0 && (
+            <span className="text-xs text-muted-foreground font-mono">
+              {logs.length} total
+            </span>
+          )}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => refetch()}
+            disabled={isRefetching}
+            data-testid="button-refresh-logs"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <RotateCcw size={18} className={isRefetching ? "animate-spin" : ""} />
+          </Button>
+        </div>
       </div>
 
       <div className="flex flex-col gap-2">
@@ -53,9 +75,12 @@ export default function LogsTab() {
             No logs available.
           </div>
         ) : (
-          logs.map((log) => {
-            const isSuccess = log.status.startsWith("2") || log.status === "OK" || log.status.toLowerCase() === "success";
-            
+          pageLogs.map((log) => {
+            const isSuccess =
+              log.status.startsWith("2") ||
+              log.status === "OK" ||
+              log.status.toLowerCase() === "success";
+
             return (
               <div
                 key={log.id}
@@ -79,7 +104,10 @@ export default function LogsTab() {
                   </span>
                 </div>
                 {log.reason && (
-                  <div className="text-xs text-muted-foreground truncate pl-4 border-l border-border ml-1.5" title={log.reason}>
+                  <div
+                    className="text-xs text-muted-foreground truncate pl-4 border-l border-border ml-1.5"
+                    title={log.reason}
+                  >
                     {log.reason}
                   </div>
                 )}
@@ -88,6 +116,39 @@ export default function LogsTab() {
           })
         )}
       </div>
+
+      {/* Pagination controls — only rendered when there is more than one page */}
+      {totalPages > 1 && (
+        <div className="flex items-center justify-between pt-2">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.max(1, p - 1))}
+            disabled={safePage === 1}
+            data-testid="button-logs-prev"
+            className="flex items-center gap-1"
+          >
+            <ChevronLeft size={14} />
+            Prev
+          </Button>
+
+          <span className="text-xs text-muted-foreground font-mono">
+            Page {safePage} of {totalPages}
+          </span>
+
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => setPage((p) => Math.min(totalPages, p + 1))}
+            disabled={safePage === totalPages}
+            data-testid="button-logs-next"
+            className="flex items-center gap-1"
+          >
+            Next
+            <ChevronRight size={14} />
+          </Button>
+        </div>
+      )}
     </div>
   );
 }

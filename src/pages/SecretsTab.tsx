@@ -3,6 +3,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { Trash2, Copy, Check } from "lucide-react";
 import { fetchApi } from "@/lib/api";
+import { WORKER_ORIGIN } from "@/lib/config";
 import { SkeletonRow } from "@/components/SkeletonRow";
 import { ConfirmDeleteDrawer } from "@/components/ConfirmDeleteDrawer";
 import { Button } from "@/components/ui/button";
@@ -52,7 +53,7 @@ export default function SecretsTab() {
   const [deletingSecret, setDeletingSecret] = useState<Secret | null>(null);
 
   const proxyEndpoint = selectedGatewayId
-    ? `https://zamproject-api.zamdonations.workers.dev/gateway/gateways/${selectedGatewayId}/env`
+    ? `${WORKER_ORIGIN}/gateway/gateways/${selectedGatewayId}/env`
     : null;
 
   const { data: groups = [] } = useQuery<Group[]>({

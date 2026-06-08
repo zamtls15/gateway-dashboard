@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { Toaster } from "sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Layout } from "@/components/Layout";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import GroupsTab from "@/pages/GroupsTab";
 import GatewaysTab from "@/pages/GatewaysTab";
 import SecretsTab from "@/pages/SecretsTab";
@@ -22,11 +23,31 @@ function Router() {
   return (
     <Layout>
       <Switch>
-        <Route path="/" component={GroupsTab} />
-        <Route path="/gateways" component={GatewaysTab} />
-        <Route path="/secrets" component={SecretsTab} />
-        <Route path="/logs" component={LogsTab} />
-        <Route path="/health-check" component={HealthTab} />
+        <Route path="/">
+          <ErrorBoundary pageName="Groups">
+            <GroupsTab />
+          </ErrorBoundary>
+        </Route>
+        <Route path="/gateways">
+          <ErrorBoundary pageName="Gateways">
+            <GatewaysTab />
+          </ErrorBoundary>
+        </Route>
+        <Route path="/secrets">
+          <ErrorBoundary pageName="Secrets">
+            <SecretsTab />
+          </ErrorBoundary>
+        </Route>
+        <Route path="/logs">
+          <ErrorBoundary pageName="Logs">
+            <LogsTab />
+          </ErrorBoundary>
+        </Route>
+        <Route path="/health-check">
+          <ErrorBoundary pageName="Health">
+            <HealthTab />
+          </ErrorBoundary>
+        </Route>
         <Route component={NotFound} />
       </Switch>
     </Layout>
